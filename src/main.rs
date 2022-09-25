@@ -3,7 +3,7 @@
 
 #[macro_use] extern crate rocket;
 use rocket::serde::json::Json;
-use rocket::Request;
+// use rocket::Request;
 use rusqlite::Connection;
 use serde::{Serialize, Deserialize};
 use std::{string::String, vec};
@@ -51,6 +51,17 @@ struct UserItem {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+struct UserItemUpdate {
+    nombre_usuario: String,
+    lugar_expedicion: String,
+    email_personal: String,
+    telefono_movil: String,
+    eps: String,
+    situacion_militar: String,
+    vivienda: Vec<ViviendaItem>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 struct ResponsablesItem {
     responsable_nombre: String,
     responsable_tipo_doc: String,
@@ -79,7 +90,7 @@ fn fetch_responsables(user: String) -> Result<Json<DataResponsableList>, String>
         Err(_) => return Err("Failed to prepare query".into()),
     };
 
-    let results = statement.query_map(rusqlite::NO_PARAMS, |row| {
+    let results = statement.query_map([], |row| {
         Ok(ResponsablesItem {
             responsable_nombre: row.get(0)?,
             responsable_tipo_doc: row.get(1)?,
@@ -112,7 +123,7 @@ fn fetch_vivienda(user: String) -> Result<Json<DataViviendaList>, String> {
         Err(_) => return Err("Failed to prepare query".into()),
     };
 
-    let results = statement.query_map(rusqlite::NO_PARAMS, |row| {
+    let results = statement.query_map([], |row| {
         Ok(ViviendaItem {
             vivienda_tipo: row.get(0)?,
             vivienda_direccion: row.get(1)?,
@@ -136,13 +147,6 @@ fn fetch_vivienda(user: String) -> Result<Json<DataViviendaList>, String> {
     }
 }
 
-
-#[get("/")]
-fn index() -> &'static str {
-    "Hello, world!"
-}
-
-
 #[get("/user/<user>")]
 fn fetch_users(user: String) -> Result<Json<DataList>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
@@ -155,7 +159,7 @@ fn fetch_users(user: String) -> Result<Json<DataList>, String> {
         Err(_) => return Err("Failed to prepare query".into()),
     };
 
-    let results = statement.query_map(rusqlite::NO_PARAMS, |row| {
+    let results = statement.query_map([], |row| {
         Ok(UserItem {
             nombre_usuario: row.get(0)?,
             nombre_completo: row.get(1)?,
@@ -192,7 +196,7 @@ fn fetch_users(user: String) -> Result<Json<DataList>, String> {
 
 
 #[put("/update", format = "json", data = "<user_data>")]
-fn update_item(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
+fn update_item(user_data: Json<UserItemUpdate>) -> Result<Json<StatusMessage>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
         Ok(connection) => connection,
         Err(_) => return Err(String::from("Failed to connect to database"))
@@ -206,7 +210,7 @@ fn update_item(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String>
         Err(_) => return Err("Failed to prepare query".into()),
     };
 
-    let results = statement.execute(rusqlite::NO_PARAMS);
+    let results = statement.execute([]);
 
     // Afect the VIVIENDA table
     // Use a for cycle to move through the 2 items
@@ -219,7 +223,7 @@ fn update_item(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String>
                 Err(_) => return Err("Failed to prepare query".into()),
             };
 
-            let results = statement.execute(rusqlite::NO_PARAMS);
+            let _results = statement.execute([]);
         }
     }
 
@@ -231,7 +235,6 @@ fn update_item(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String>
     }
 }
 
-
 #[post("/new", format = "json", data = "<user_data>")]
 fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
@@ -239,22 +242,20 @@ fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
         Err(_) => return Err(String::from("Failed to connect to database"))
     };
 
-    // Afect the RESPONSABLES table
-    // Use a for cycle to move through the 2 items
     for i in 0..2 {
-        let param = format!("INSERT INTO RESPONSABLES (nombre, tipo_doc, numero_doc, telefono, nombre_usuario) VALUES ('{}', '{}', '{}', '{}', '{}');",
+        // Afect the RESPONSABLES table
+        // Use a for cycle to move through the 2 items
+        let param = format!("INSERT INTO RESPONSABLE (nombre, tipo_doc, numero_doc, telefono, nombre_usuario) VALUES ('{}', '{}', '{}', '{}', '{}');",
                             user_data.responsables[i].responsable_nombre, user_data.responsables[i].responsable_tipo_doc, user_data.responsables[i].responsable_numero_doc, user_data.responsables[i].responsable_telefono, user_data.nombre_usuario);
         let mut statement = match db_connection.prepare(&*param) {
             Ok(statement) => statement,
             Err(_) => return Err("Failed to prepare query".into()),
         };
 
-        let results = statement.execute(rusqlite::NO_PARAMS);
-    }
+        let _results = statement.execute([]);
 
-    // Afect the VIVIENDA table
-    // Use a for cycle to move through the 2 items
-    for i in 0..2 {
+        // Afect the VIVIENDA table
+        // Use a for cycle to move through the 2 items
         let param = format!("INSERT INTO VIVIENDA (tipo, direccion, departamento, codigo_postal, telefono, estrato, nombre_usuario) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}');",
                             user_data.vivienda[i].vivienda_tipo, user_data.vivienda[i].vivienda_direccion, user_data.vivienda[i].vivienda_departamento, user_data.vivienda[i].vivienda_codigo_postal, user_data.vivienda[i].vivienda_telefono, user_data.vivienda[i].vivienda_estrato, user_data.nombre_usuario);
         let mut statement = match db_connection.prepare(&*param) {
@@ -262,7 +263,7 @@ fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
             Err(_) => return Err("Failed to prepare query".into()),
         };
 
-        let results = statement.execute(rusqlite::NO_PARAMS);
+        let _results = statement.execute([]);
     }
 
     // Afect the USUARIOS table
@@ -273,7 +274,7 @@ fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
         Err(_) => return Err("Failed to prepare query".into()),
     };
 
-    let results = statement.execute(rusqlite::NO_PARAMS);
+    let results = statement.execute([]);
 
     match results {
         Ok(rows_affected) => Ok(Json(StatusMessage {
@@ -282,6 +283,7 @@ fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
         Err(_) => Err("Failed to insert item".into()),
     }
 }
+
 
 #[launch]
 fn rocket() -> _ {
