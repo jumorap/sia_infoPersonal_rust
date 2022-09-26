@@ -194,7 +194,6 @@ fn fetch_users(user: String) -> Result<Json<DataList>, String> {
     }
 }
 
-
 #[put("/update", format = "json", data = "<user_data>")]
 fn update_item(user_data: Json<UserItemUpdate>) -> Result<Json<StatusMessage>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
@@ -287,5 +286,5 @@ fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, fetch_users, update_item, insert])
+    rocket::build().mount("/", routes![fetch_users, update_item, insert])
 }
