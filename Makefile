@@ -15,4 +15,3 @@ runServer:
 
 runFinal:
 	docker run -p 4000:4000 -e DB_HOST=host.docker.internal -e DB_PORT=3306 -e DB_USER=admin -e DB_PASSWORD=2022 -e DB_NAME=sia_asignaturas_db -e URL=0.0.0.0:4000 jorodriguezal/sia_inscripciones_ms
-

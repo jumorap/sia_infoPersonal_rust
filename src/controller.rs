@@ -1,85 +1,11 @@
-// insert into VIVIENDA(tipo, direccion, departamento, codigo_postal, telefono, estrato, nombre_usuario) values("", ...);
-// insert into RESPONSABLE(nombre, tipo_doc, numero_doc, telefono, nombre_usuario) values("", ...);
-
-#[macro_use] extern crate rocket;
 use rocket::serde::json::Json;
-// use rocket::Request;
 use rusqlite::Connection;
-use serde::{Serialize, Deserialize};
-use std::{string::String, vec};
+use std::{string::String};
+
+use crate::model;
 
 
-#[derive(Serialize, Deserialize, Clone)]
-struct StatusMessage {
-    message: String,
-}
-
-#[derive(Serialize)]
-pub struct DataList {
-    items: Vec<UserItem>,
-}
-
-#[derive(Serialize)]
-pub struct DataResponsableList {
-    items: Vec<ResponsablesItem>,
-}
-
-#[derive(Serialize)]
-pub struct DataViviendaList {
-    items: Vec<ViviendaItem>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct UserItem {
-    nombre_usuario: String,
-    nombre_completo: String,
-    documento_identidad: String,
-    lugar_expedicion: String,
-    sexo: String,
-    etnia: String,
-    email_personal: String,
-    email_institucional: String,
-    telefono_movil: String,
-    fecha_nacimiento: String,
-    lugar_nacimiento: String,
-    nacionalidad: String,
-    tipo_sangre: String,
-    eps: String,
-    situacion_militar: String,
-    responsables: Vec<ResponsablesItem>,
-    vivienda: Vec<ViviendaItem>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct UserItemUpdate {
-    nombre_usuario: String,
-    lugar_expedicion: String,
-    email_personal: String,
-    telefono_movil: String,
-    eps: String,
-    situacion_militar: String,
-    vivienda: Vec<ViviendaItem>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct ResponsablesItem {
-    responsable_nombre: String,
-    responsable_tipo_doc: String,
-    responsable_numero_doc: String,
-    responsable_telefono: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct ViviendaItem {
-    vivienda_tipo: String,
-    vivienda_direccion: String,
-    vivienda_departamento: String,
-    vivienda_codigo_postal: String,
-    vivienda_telefono: String,
-    vivienda_estrato: String,
-}
-
-fn fetch_responsables(user: String) -> Result<Json<DataResponsableList>, String> {
+pub fn fetch_responsables(user: String) -> Result<Json<model::DataResponsableList>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
         Ok(connection) => connection,
         Err(_) => return Err(String::from("Failed to connect to database"))
@@ -91,7 +17,7 @@ fn fetch_responsables(user: String) -> Result<Json<DataResponsableList>, String>
     };
 
     let results = statement.query_map([], |row| {
-        Ok(ResponsablesItem {
+        Ok(model::ResponsablesItem {
             responsable_nombre: row.get(0)?,
             responsable_tipo_doc: row.get(1)?,
             responsable_numero_doc: row.get(2)?,
@@ -104,7 +30,7 @@ fn fetch_responsables(user: String) -> Result<Json<DataResponsableList>, String>
             let collection: rusqlite::Result<Vec<_>> = rows.collect();
 
             match collection {
-                Ok(items) => Ok(Json(DataResponsableList { items })),
+                Ok(items) => Ok(Json(model::DataResponsableList { items })),
                 Err(_) => Err("Could not collect items".into()),
             }
         }
@@ -112,7 +38,7 @@ fn fetch_responsables(user: String) -> Result<Json<DataResponsableList>, String>
     }
 }
 
-fn fetch_vivienda(user: String) -> Result<Json<DataViviendaList>, String> {
+pub fn fetch_vivienda(user: String) -> Result<Json<model::DataViviendaList>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
         Ok(connection) => connection,
         Err(_) => return Err(String::from("Failed to connect to database"))
@@ -124,7 +50,7 @@ fn fetch_vivienda(user: String) -> Result<Json<DataViviendaList>, String> {
     };
 
     let results = statement.query_map([], |row| {
-        Ok(ViviendaItem {
+        Ok(model::ViviendaItem {
             vivienda_tipo: row.get(0)?,
             vivienda_direccion: row.get(1)?,
             vivienda_departamento: row.get(2)?,
@@ -139,7 +65,7 @@ fn fetch_vivienda(user: String) -> Result<Json<DataViviendaList>, String> {
             let collection: rusqlite::Result<Vec<_>> = rows.collect();
 
             match collection {
-                Ok(items) => Ok(Json(DataViviendaList { items })),
+                Ok(items) => Ok(Json(model::DataViviendaList { items })),
                 Err(_) => Err("Could not collect items".into()),
             }
         }
@@ -147,8 +73,7 @@ fn fetch_vivienda(user: String) -> Result<Json<DataViviendaList>, String> {
     }
 }
 
-#[get("/user/<user>")]
-fn fetch_users(user: String) -> Result<Json<DataList>, String> {
+pub fn fetch_users(user: String) -> Result<Json<model::DataList>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
         Ok(connection) => connection,
         Err(_) => return Err(String::from("Failed to connect to database"))
@@ -160,7 +85,7 @@ fn fetch_users(user: String) -> Result<Json<DataList>, String> {
     };
 
     let results = statement.query_map([], |row| {
-        Ok(UserItem {
+        Ok(model::UserItem {
             nombre_usuario: row.get(0)?,
             nombre_completo: row.get(1)?,
             documento_identidad: row.get(2)?,
@@ -186,7 +111,7 @@ fn fetch_users(user: String) -> Result<Json<DataList>, String> {
             let collection: rusqlite::Result<Vec<_>> = rows.collect();
 
             match collection {
-                Ok(items) => Ok(Json(DataList { items })),
+                Ok(items) => Ok(Json(model::DataList { items })),
                 Err(_) => Err("Could not collect items".into()),
             }
         }
@@ -194,8 +119,7 @@ fn fetch_users(user: String) -> Result<Json<DataList>, String> {
     }
 }
 
-#[put("/update", format = "json", data = "<user_data>")]
-fn update_item(user_data: Json<UserItemUpdate>) -> Result<Json<StatusMessage>, String> {
+pub fn update_item(user_data: Json<model::UserItemUpdate>) -> Result<Json<model::StatusMessage>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
         Ok(connection) => connection,
         Err(_) => return Err(String::from("Failed to connect to database"))
@@ -227,15 +151,14 @@ fn update_item(user_data: Json<UserItemUpdate>) -> Result<Json<StatusMessage>, S
     }
 
     match results {
-        Ok(rows_affected) => Ok(Json(StatusMessage {
+        Ok(rows_affected) => Ok(Json(model::StatusMessage {
             message: format!("{} rows afected!", rows_affected),
         })),
         Err(_) => Err("Failed to insert item".into()),
     }
 }
 
-#[post("/new", format = "json", data = "<user_data>")]
-fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
+pub fn insert(user_data: Json<model::UserItem>) -> Result<Json<model::StatusMessage>, String> {
     let db_connection = match Connection::open("./SIA_INFO_PERSONAL_DB.db") {
         Ok(connection) => connection,
         Err(_) => return Err(String::from("Failed to connect to database"))
@@ -276,15 +199,9 @@ fn insert(user_data: Json<UserItem>) -> Result<Json<StatusMessage>, String> {
     let results = statement.execute([]);
 
     match results {
-        Ok(rows_affected) => Ok(Json(StatusMessage {
+        Ok(rows_affected) => Ok(Json(model::StatusMessage {
             message: format!("{} rows afected!", rows_affected),
         })),
         Err(_) => Err("Failed to insert item".into()),
     }
-}
-
-
-#[launch]
-fn rocket() -> _ {
-    rocket::build().mount("/", routes![fetch_users, update_item, insert])
 }
